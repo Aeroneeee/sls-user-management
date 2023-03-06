@@ -21,7 +21,7 @@ exports.create = (req, res) => {
   // Save User in the database
   User.create(user)
     .then(data => {
-      res.send(data);
+      res.status(201).send(data);
     })
     .catch(err => {
       res.status(500).send({
@@ -70,23 +70,29 @@ exports.findOne = (req, res) => {
 exports.update = (req, res) => {
   const id = req.params.id;
 
-  User.update(req.body, {
-    where: { id: id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: 'User was updated successfully.'
-        });
+  User.findByPk(id)
+    .then(user => {
+      if (user) {
+        user.update(req.body)
+          .then(updatedUser => {
+            res.send(updatedUser);
+          })
+          .catch(err => {
+            res.status(500).send({
+              message:
+                err.message || `Error updating user with id=${id}.`
+            });
+          });
       } else {
-        res.send({
-          message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`
+        res.status(404).send({
+          message: `User with id=${id} not found.`
         });
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: `Error updating User with id=${id}`
+        message:
+          err.message || `Error retrieving user with id=${id}.`
       });
     });
 };
@@ -100,7 +106,7 @@ exports.delete = (req, res) => {
   })
     .then(num => {
       if (num == 1) {
-        res.send({
+        res.status(204).send({
           message: 'User was deleted successfully!'
         });
       } else {
@@ -123,7 +129,7 @@ exports.deleteAll = (req, res) => {
     truncate: false
   })
     .then(nums => {
-      res.send({ message: `${nums} Users were deleted successfully!` });
+      res.status(204).send({ message: `${nums} Users were deleted successfully!` });
     })
     .catch(err => {
       res.status(500).send({

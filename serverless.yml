@@ -20,9 +20,9 @@ service: sls-user-management
 # Check out our docs for more details
 frameworkVersion: '3'
 
-provider:
-  name: aws
-  runtime: nodejs12.x
+# provider:
+#   name: aws
+#   runtime: nodejs12.x
 
 # you can overwrite defaults here
 #  stage: dev
@@ -58,9 +58,9 @@ provider:
 #    - include-me.js
 #    - include-me-dir/**
 
-functions:
-  hello:
-    handler: handler.hello
+# functions:
+#   hello:
+#     handler: handler.hello
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -112,3 +112,83 @@ functions:
 #     NewOutput:
 #       Description: "Description for the output"
 #       Value: "Some output value"
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: us-east-1
+  environment:
+    MYSQL_DATABASE: my_database
+    MYSQL_USER: my_user
+    MYSQL_PASSWORD: my_password
+    MYSQL_HOST: my_host
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - 'rds-data:ExecuteStatement'
+      # Resource: '*'
+
+plugins:
+  - serverless-offline
+  - serverless-mysql
+  - serverless-sequelize
+  - serverless-reqvalidator
+functions:
+  createUser:
+    handler: src/handlers/createUser.handler
+    events:
+      - http:
+          path: user
+          method: post
+          cors: true
+          reqValidatorName: createUserValidator
+  readUser:
+    handler: src/handlers/readUser.handler
+    events:
+      - http:
+          path: user/{id}
+          method: get
+          cors: true
+          reqValidatorName: readUserValidator
+  updateUser:
+    handler: src/handlers/updateUser.handler
+    events:
+      - http:
+          path: user/{id}
+          method: put
+          cors: true
+          reqValidatorName: updateUserValidator
+  deleteUser:
+    handler: src/handlers/deleteUser.handler
+    events:
+      - http:
+          path: user/{id}
+          method: delete
+          cors: true
+          reqValidatorName: deleteUserValidator
+  listUsers:
+    handler: src/handlers/listUsers.handler
+    events:
+      - http:
+          path: users
+          method: get
+          cors: true
+          reqValidatorName: listUsersValidator
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        Engine: MySQL
+        DBInstanceClass: db.t2.micro
+        DBInstanceIdentifier: my-db-instance
+        # MasterUsername: ${self:provider.environment.MYSQL_USER}
+        MasterUserPassword: ${self:provider.environment.MYSQL_PASSWORD}
+        # DBName: ${self:provider.environment.MYSQL_DATABASE}
+        # AllocatedStorage: 20
+        PubliclyAccessible: false
+        VPCSecurityGroups:
+          - sg-xxxxxx
+        DBSubnetGroupName: my-db-subnet-group
+        MultiAZ: false
